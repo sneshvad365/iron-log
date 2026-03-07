@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "module": "Preserve",
+    "strict": true,
+    "lib": ["es2022", "dom"],
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "src/*":        ["src/*"],
+      "app/*":        ["*"],
+      "boot/*":       ["src/boot/*"],
+      "stores/*":     ["src/stores/*"],
+      "pages/*":      ["src/pages/*"],
+      "layouts/*":    ["src/layouts/*"],
+      "components/*": ["src/components/*"],
+      "api/*":        ["src/api/*"],
+      "assets/*":     ["src/assets/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.vue",
+    "src/**/*.d.ts",
+    ".quasar/**/*.ts"
+  ]
+}

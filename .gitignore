@@ -1,0 +1,20 @@
+# Backend
+backend/target/
+backend/project/target/
+backend/project/project/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.quasar/
+
+# Environment / secrets
+frontend/.env
+backend/.env
+*.env
+
+# macOS
+.DS_Store
+
+# Logs
+*.log

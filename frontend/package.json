@@ -1,0 +1,26 @@
+{
+  "name": "iron-log-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "quasar dev",
+    "build": "quasar build",
+    "lint": "eslint --ext .js,.ts,.vue ./src"
+  },
+  "dependencies": {
+    "@quasar/extras": "^1.16.12",
+    "axios": "^1.7.2",
+    "echarts": "^5.5.1",
+    "pinia": "^2.1.7",
+    "quasar": "^2.16.6",
+    "vue": "^3.4.29",
+    "vue-echarts": "^7.0.3",
+    "vue-router": "^4.3.3"
+  },
+  "devDependencies": {
+    "@quasar/app-vite": "^2.4.1",
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.3",
+    "vite": "^7.3.1"
+  }
+}
