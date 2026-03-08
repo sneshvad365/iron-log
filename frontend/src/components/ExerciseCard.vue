@@ -1,5 +1,7 @@
 <template>
   <q-card flat bordered>
+    <ExerciseGif :gif-url="exercise.gifUrl" :gif-url2="exercise.gifUrl2" :name="exercise.name" :size="160"
+      style="width: 100%; height: 160px; border-radius: 8px 8px 0 0;" />
     <q-card-section>
       <div class="row items-start no-wrap">
         <div class="col">
@@ -19,6 +21,7 @@
 
 <script setup lang="ts">
 import type { Exercise } from 'stores/exercise'
+import ExerciseGif from 'components/ExerciseGif.vue'
 
 defineProps<{ exercise: Exercise }>()
 const emit = defineEmits<{ (e: 'delete'): void }>()

@@ -74,7 +74,7 @@ const navLinks = [
   { to: '/app/log',       icon: 'fitness_center', label: 'Log Workout' },
   { to: '/app/history',   icon: 'history',    label: 'History'    },
   { to: '/app/exercises', icon: 'list',       label: 'Exercises'  },
-  { to: '/app/stats',     icon: 'bar_chart',  label: 'Stats'      },
+  { to: '/app/stats',    icon: 'bar_chart',    label: 'Stats'    },
   { to: '/app/reports',  icon: 'auto_awesome', label: 'Reports'  },
 ]
 

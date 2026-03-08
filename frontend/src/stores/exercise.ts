@@ -9,6 +9,8 @@ export interface Exercise {
   type: string
   createdBy: string | null
   createdAt: string
+  gifUrl: string | null
+  gifUrl2: string | null
 }
 
 export const useExerciseStore = defineStore('exercise', () => {

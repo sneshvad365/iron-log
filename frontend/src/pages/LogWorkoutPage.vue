@@ -74,6 +74,9 @@
             clickable v-ripple
             @click="addExercise(e)"
           >
+            <q-item-section avatar>
+              <ExerciseGif :gif-url="e.gifUrl" :gif-url2="e.gifUrl2" :name="e.name" :size="52" />
+            </q-item-section>
             <q-item-section>
               <q-item-label>{{ e.name }}</q-item-label>
               <q-item-label caption>{{ e.muscleGroup }}</q-item-label>
@@ -97,6 +100,7 @@ import type { Exercise } from 'stores/exercise'
 import type { WorkoutSet } from 'stores/workout'
 import SetRow from 'components/SetRow.vue'
 import ActiveSessionTimer from 'components/ActiveSessionTimer.vue'
+import ExerciseGif from 'components/ExerciseGif.vue'
 
 const router        = useRouter()
 const workoutStore  = useWorkoutStore()

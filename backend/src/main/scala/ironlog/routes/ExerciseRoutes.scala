@@ -14,6 +14,8 @@ object ExerciseRoutes extends cask.Routes:
     "type"        -> e.`type`,
     "createdBy"   -> e.createdBy.fold[ujson.Value](ujson.Null)(ujson.Str(_)),
     "createdAt"   -> e.createdAt.toString,
+    "gifUrl"      -> e.gifUrl.fold[ujson.Value](ujson.Null)(ujson.Str(_)),
+    "gifUrl2"     -> e.gifUrl2.fold[ujson.Value](ujson.Null)(ujson.Str(_)),
   )
 
   @cask.get("/api/exercises")
@@ -50,6 +52,8 @@ object ExerciseRoutes extends cask.Routes:
         _.`type`      := exerciseType,
         _.createdBy   := Option(userId),
         _.createdAt   := now,
+        _.gifUrl      := (None: Option[String]),
+        _.gifUrl2     := (None: Option[String]),
       )))
       ok(ujson.Obj(
         "id"          -> id,
