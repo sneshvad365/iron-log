@@ -69,7 +69,30 @@ object WorkoutRoutes extends cask.Routes:
         val rows = Database.run(_.run(Workout.select.filter(w => w.id === id && w.userId === userId)))
         rows.headOption match
           case None    => err("Workout not found", 404)
-          case Some(w) => ok(workoutJson(w))
+          case Some(w) =>
+            val sets      = Database.run(_.run(WorkoutSet.select.filter(_.workoutId === id).sortBy(_.setNumber)))
+            val exIds     = sets.map(_.exerciseId).toSet
+            val exercises = Database.run(_.run(Exercise.select)).filter(e => exIds.contains(e.id))
+            val exById    = exercises.map(e => e.id -> e).toMap
+            val setsJson  = sets.map(s => ujson.Obj(
+              "id"           -> s.id,
+              "exerciseId"   -> s.exerciseId,
+              "exerciseName" -> exById.get(s.exerciseId).map(_.name).getOrElse("Unknown"),
+              "muscleGroup"  -> exById.get(s.exerciseId).map(_.muscleGroup).getOrElse(""),
+              "setNumber"    -> s.setNumber,
+              "weightKg"     -> s.weightKg.fold[ujson.Value](ujson.Null)(ujson.Num(_)),
+              "reps"         -> s.reps.fold[ujson.Value](ujson.Null)(ujson.Num(_)),
+              "isDone"       -> s.isDone,
+            ))
+            ok(ujson.Obj(
+              "id"        -> w.id,
+              "userId"    -> w.userId,
+              "title"     -> w.title,
+              "notes"     -> w.notes.fold[ujson.Value](ujson.Null)(ujson.Str(_)),
+              "startedAt" -> w.startedAt.toString,
+              "endedAt"   -> w.endedAt.fold[ujson.Value](ujson.Null)(d => ujson.Str(d.toString)),
+              "sets"      -> ujson.Arr(setsJson*),
+            ))
     catch case e: Exception => err(e.getMessage, 500)
   }
 
@@ -85,7 +108,7 @@ object WorkoutRoutes extends cask.Routes:
           val notes   = body.obj.get("notes").map(v => Option(v.str)).getOrElse(w.notes)
           val endedAt = body.obj.get("ended_at").flatMap { v =>
             if v.isNull then None
-            else Option(LocalDateTime.parse(v.str, DateTimeFormatter.ISO_DATE_TIME))
+            else Option(LocalDateTime.now()) // use server time to avoid client timezone issues
           }.orElse(w.endedAt)
           Database.run(_.run(
             Workout.update(_.id === id)

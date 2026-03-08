@@ -12,26 +12,39 @@
       </div>
     </div>
 
+    <!-- Period toggle (shared) -->
+    <div class="row justify-end q-mb-md">
+      <q-btn-toggle
+        v-model="period"
+        :options="[{ label: 'Weekly', value: 'weekly' }, { label: 'Monthly', value: 'monthly' }]"
+        dense flat
+        @update:model-value="onPeriodChange"
+      />
+    </div>
+
     <!-- Volume over time -->
     <q-card flat bordered class="q-mb-md">
       <q-card-section>
         <div class="row items-center q-mb-sm">
           <div class="text-subtitle1 text-weight-bold col">Volume Over Time</div>
-          <q-btn-toggle
-            v-model="volumePeriod"
-            :options="[{ label: 'Weekly', value: 'weekly' }, { label: 'Monthly', value: 'monthly' }]"
-            dense flat
-            @update:model-value="statsStore.fetchVolume(volumePeriod)"
-          />
+          <q-btn v-if="selectedLabel" flat dense size="sm" icon="close" color="grey"
+            @click="clearSelection" label="Clear selection" />
         </div>
-        <VolumeChart :data="statsStore.volume" />
+        <VolumeChart
+          :data="statsStore.volume"
+          :selected-label="selectedLabel"
+          @bar-click="onBarClick"
+        />
       </q-card-section>
     </q-card>
 
     <!-- Muscle breakdown -->
     <q-card flat bordered class="q-mb-md">
       <q-card-section>
-        <div class="text-subtitle1 text-weight-bold q-mb-sm">Muscle Group Breakdown</div>
+        <div class="row items-center q-mb-sm">
+          <div class="text-subtitle1 text-weight-bold col">Muscle Group Breakdown</div>
+          <div v-if="selectedLabel" class="text-caption text-grey">{{ breakdownRangeLabel }}</div>
+        </div>
         <MuscleBreakdownChart :data="statsStore.muscleBreakdown" />
       </q-card-section>
     </q-card>
@@ -68,22 +81,61 @@ import { useStatsStore } from 'stores/stats'
 import VolumeChart from 'components/VolumeChart.vue'
 import MuscleBreakdownChart from 'components/MuscleBreakdownChart.vue'
 
-const statsStore  = useStatsStore()
-const volumePeriod = ref<'weekly' | 'monthly'>('weekly')
+const statsStore    = useStatsStore()
+const period        = ref<'weekly' | 'monthly'>('weekly')
+const selectedLabel = ref<string | undefined>(undefined)
+
+// Given a bar label, compute the [from, to] date range
+function dateRangeFor(label: string): { from: string; to: string } {
+  if (period.value === 'monthly') {
+    const start = new Date(label)
+    const end   = new Date(start.getFullYear(), start.getMonth() + 1, 0) // last day of month
+    return { from: label, to: end.toISOString().slice(0, 10) }
+  } else {
+    // label is Monday of the week (YYYY-MM-DD)
+    const start = new Date(label)
+    const end   = new Date(start)
+    end.setDate(end.getDate() + 6)
+    return { from: label, to: end.toISOString().slice(0, 10) }
+  }
+}
+
+const breakdownRangeLabel = computed(() => {
+  if (!selectedLabel.value) return ''
+  const { from, to } = dateRangeFor(selectedLabel.value)
+  return `${from} → ${to}`
+})
+
+function onBarClick(label: string) {
+  selectedLabel.value = label
+  const { from, to } = dateRangeFor(label)
+  statsStore.fetchMuscleBreakdown(period.value, 12, from, to)
+}
+
+function clearSelection() {
+  selectedLabel.value = undefined
+  statsStore.fetchMuscleBreakdown(period.value)
+}
+
+function onPeriodChange() {
+  selectedLabel.value = undefined
+  statsStore.fetchVolume(period.value)
+  statsStore.fetchMuscleBreakdown(period.value)
+}
 
 const lifetimeStats = computed(() => [
-  { label: 'Total Workouts',  value: statsStore.summary?.totalWorkouts  ?? '–' },
-  { label: 'Volume (kg)',     value: statsStore.summary ? Math.round(statsStore.summary.weeklyVolume) : '–' },
-  { label: 'Hours Trained',  value: statsStore.summary ? Math.round(statsStore.summary.weeklyMinutes / 60) : '–' },
-  { label: 'Streak',         value: statsStore.summary?.streak ?? '–' },
+  { label: 'Total Workouts', value: statsStore.summary?.totalWorkouts  ?? '–' },
+  { label: 'Volume (kg)',    value: statsStore.summary ? Math.round(statsStore.summary.weeklyVolume) : '–' },
+  { label: 'Hours Trained', value: statsStore.summary ? Math.round(statsStore.summary.weeklyMinutes / 60) : '–' },
+  { label: 'Streak',        value: statsStore.summary?.streak ?? '–' },
 ])
 
 onMounted(async () => {
   await Promise.all([
     statsStore.fetchSummary(),
-    statsStore.fetchVolume(),
+    statsStore.fetchVolume(period.value),
     statsStore.fetchPRs(),
-    statsStore.fetchMuscleBreakdown(),
+    statsStore.fetchMuscleBreakdown(period.value),
   ])
 })
 </script>

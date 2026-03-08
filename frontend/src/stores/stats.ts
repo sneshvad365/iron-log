@@ -43,8 +43,8 @@ export const useStatsStore = defineStore('stats', () => {
     frequency.value = res.data.data
   }
 
-  async function fetchMuscleBreakdown(weeks = 12) {
-    const res = await statsApi.getMuscleBreakdown(weeks)
+  async function fetchMuscleBreakdown(period: 'weekly' | 'monthly' = 'weekly', count = 12, from?: string, to?: string) {
+    const res = await statsApi.getMuscleBreakdown(period, count, from, to)
     muscleBreakdown.value = res.data.data
   }
 

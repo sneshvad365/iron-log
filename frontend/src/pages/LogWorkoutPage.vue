@@ -4,7 +4,18 @@
     <div v-if="!workout" class="flex flex-center column" style="min-height: 60vh">
       <q-icon name="fitness_center" size="64px" color="grey-4" />
       <div class="text-h6 text-grey q-mt-md q-mb-lg">No active session</div>
-      <q-input v-model="newTitle" label="Session title" outlined dense class="q-mb-md" style="width: 320px" />
+      <q-select
+        v-model="newTitle"
+        :options="titleOptions"
+        label="Session title"
+        outlined dense dark
+        use-input
+        input-debounce="0"
+        new-value-mode="add-unique"
+        class="q-mb-md"
+        style="width: 320px"
+        @filter="filterTitles"
+      />
       <q-btn label="Start Session" color="primary" size="lg" unelevated :loading="starting" @click="startSession" />
     </div>
 
@@ -92,7 +103,13 @@ const workoutStore  = useWorkoutStore()
 const exerciseStore = useExerciseStore()
 
 const workout            = computed(() => workoutStore.activeWorkout)
+const predefinedTitles = [
+  'Morning Workout', 'Evening Workout', 'Leg Day', 'Push Day', 'Pull Day',
+  'Upper Body', 'Lower Body', 'Full Body', 'Chest & Triceps', 'Back & Biceps',
+  'Shoulders & Arms', 'Cardio Session', 'Core & Abs', 'Mobility & Stretch',
+]
 const newTitle           = ref('Morning Workout')
+const titleOptions       = ref([...predefinedTitles])
 const editTitle          = ref('')
 const starting           = ref(false)
 const showExercisePicker = ref(false)
@@ -118,6 +135,16 @@ const filteredExercises = computed(() =>
     e.name.toLowerCase().includes(search.value.toLowerCase())
   )
 )
+
+function filterTitles(val: string, update: (fn: () => void) => void) {
+  update(() => {
+    const matches = val
+      ? predefinedTitles.filter(t => t.toLowerCase().includes(val.toLowerCase()))
+      : [...predefinedTitles]
+    const isCustom = val && !predefinedTitles.some(t => t.toLowerCase() === val.toLowerCase())
+    titleOptions.value = isCustom ? [val, ...matches] : matches
+  })
+}
 
 async function startSession() {
   starting.value = true

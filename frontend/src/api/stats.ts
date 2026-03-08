@@ -15,5 +15,5 @@ export const getProgress = (exerciseId: string) =>
 export const getFrequency = (days = 365) =>
   client.get('/api/stats/frequency', { params: { days } })
 
-export const getMuscleBreakdown = (weeks = 12) =>
-  client.get('/api/stats/muscle-breakdown', { params: { weeks } })
+export const getMuscleBreakdown = (period: 'weekly' | 'monthly' = 'weekly', count = 12, from?: string, to?: string) =>
+  client.get('/api/stats/muscle-breakdown', { params: { period, count, ...(from && to ? { from, to } : {}) } })

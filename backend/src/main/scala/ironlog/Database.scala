@@ -10,9 +10,11 @@ object Database:
     ds.setPassword(Config.dbPassword)
     scalasql.DbClient.DataSource(ds)
 
-  /** Run a single query using an auto-commit connection from the pool. */
+  /** Run a single query using an auto-commit connection, then close it. */
   def run[T](f: scalasql.core.DbApi => T): T =
-    f(db.getAutoCommitClientConnection)
+    val conn = db.getAutoCommitClientConnection
+    try f(conn)
+    finally conn.close()
 
   /** Run multiple queries in a single transaction. */
   def transaction[T](f: scalasql.core.DbApi.Txn => T): T =

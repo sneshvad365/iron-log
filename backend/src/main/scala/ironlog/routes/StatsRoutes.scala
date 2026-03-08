@@ -21,7 +21,7 @@ object StatsRoutes extends cask.Routes:
       val workoutIds   = allWorkouts.map(_.id).toSet
       val weekIds      = weekWorkouts.map(_.id).toSet
 
-      val allSets = Database.run(_.run(WorkoutSet.select.filter(_.isDone === true)))
+      val allSets = Database.run(_.run(WorkoutSet.select.filter(s => s.weightKg.isDefined && s.reps.isDefined)))
         .filter(s => workoutIds.contains(s.workoutId))
       val weekSets = allSets.filter(s => weekIds.contains(s.workoutId))
 
@@ -53,7 +53,7 @@ object StatsRoutes extends cask.Routes:
         Workout.select.filter(w => w.userId === userId && w.endedAt.isDefined)
       ))
       val workoutById = workouts.map(w => w.id -> w).toMap
-      val allSets = Database.run(_.run(WorkoutSet.select.filter(_.isDone === true)))
+      val allSets = Database.run(_.run(WorkoutSet.select.filter(s => s.weightKg.isDefined && s.reps.isDefined)))
         .filter(s => workoutById.contains(s.workoutId))
 
       val setsWithLabel = allSets.flatMap { s =>
@@ -81,7 +81,7 @@ object StatsRoutes extends cask.Routes:
         Workout.select.filter(w => w.userId === userId && w.endedAt.isDefined)
       ))
       val workoutById = workouts.map(w => w.id -> w).toMap
-      val allSets = Database.run(_.run(WorkoutSet.select.filter(_.isDone === true)))
+      val allSets = Database.run(_.run(WorkoutSet.select.filter(s => s.weightKg.isDefined && s.reps.isDefined)))
         .filter(s => workoutById.contains(s.workoutId))
       val exercises  = Database.run(_.run(Exercise.select))
       val exById     = exercises.map(e => e.id -> e).toMap
@@ -110,7 +110,7 @@ object StatsRoutes extends cask.Routes:
       ))
       val workoutById = workouts.map(w => w.id -> w).toMap
       val sets = Database.run(_.run(
-        WorkoutSet.select.filter(s => s.exerciseId === exerciseId && s.isDone === true)
+        WorkoutSet.select.filter(s => s.exerciseId === exerciseId && s.weightKg.isDefined && s.reps.isDefined)
       )).filter(s => workoutById.contains(s.workoutId))
 
       val points = sets.groupBy(s => workoutById(s.workoutId).startedAt.toLocalDate.toString).toSeq.flatMap { (date, ds) =>
@@ -134,7 +134,7 @@ object StatsRoutes extends cask.Routes:
       )).filter(w => !w.startedAt.toLocalDate.isBefore(cutoff))
 
       val workoutById = workouts.map(w => w.id -> w).toMap
-      val allSets = Database.run(_.run(WorkoutSet.select.filter(_.isDone === true)))
+      val allSets = Database.run(_.run(WorkoutSet.select.filter(s => s.weightKg.isDefined && s.reps.isDefined)))
         .filter(s => workoutById.contains(s.workoutId))
 
       val volByWorkout = allSets.groupBy(_.workoutId).map { (wId, ss) =>
@@ -151,16 +151,23 @@ object StatsRoutes extends cask.Routes:
   }
 
   @cask.get("/api/stats/muscle-breakdown")
-  def muscleBreakdown(weeks: Int = 12, request: cask.Request) = handleAuth(request) { userId =>
+  def muscleBreakdown(period: String = "weekly", count: Int = 12, from: String = "", to: String = "", request: cask.Request) = handleAuth(request) { userId =>
     try
-      val cutoff = LocalDate.now().minusWeeks(weeks)
-
-      val workouts = Database.run(_.run(
+      val allWorkouts = Database.run(_.run(
         Workout.select.filter(w => w.userId === userId && w.endedAt.isDefined)
-      )).filter(w => !w.startedAt.toLocalDate.isBefore(cutoff))
+      ))
+      val workouts =
+        if from.nonEmpty && to.nonEmpty then
+          val fromDate = LocalDate.parse(from)
+          val toDate   = LocalDate.parse(to)
+          allWorkouts.filter(w => !w.startedAt.toLocalDate.isBefore(fromDate) && !w.startedAt.toLocalDate.isAfter(toDate))
+        else
+          val cutoff = if period == "monthly" then LocalDate.now().minusMonths(count)
+                       else LocalDate.now().minusWeeks(count)
+          allWorkouts.filter(w => !w.startedAt.toLocalDate.isBefore(cutoff))
 
       val workoutIds = workouts.map(_.id).toSet
-      val sets = Database.run(_.run(WorkoutSet.select.filter(_.isDone === true)))
+      val sets = Database.run(_.run(WorkoutSet.select.filter(s => s.weightKg.isDefined && s.reps.isDefined)))
         .filter(s => workoutIds.contains(s.workoutId))
       val exById = Database.run(_.run(Exercise.select)).map(e => e.id -> e).toMap
 
