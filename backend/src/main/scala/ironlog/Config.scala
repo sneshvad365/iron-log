@@ -8,3 +8,5 @@ object Config:
   val jwtExpiryHours: Long  = sys.env.get("JWT_EXPIRY_HOURS").flatMap(_.toLongOption).getOrElse(24L)
   val port: Int             = sys.env.get("PORT").flatMap(_.toIntOption).getOrElse(8080)
   val anthropicKey: String  = sys.env.getOrElse("ANTHROPIC_API_KEY", "")
+  val stripeSecretKey: String = sys.env.getOrElse("STRIPE_SECRET_KEY", "")
+  val frontendUrl: String   = sys.env.getOrElse("FRONTEND_URL", "http://localhost:9000")

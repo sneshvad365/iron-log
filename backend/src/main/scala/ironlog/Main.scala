@@ -10,6 +10,7 @@ object Main extends cask.Main:
     ExerciseRoutes,
     StatsRoutes,
     ReportRoutes,
+    DonateRoutes,
   )
 
   override def port: Int = Config.port

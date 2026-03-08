@@ -10,6 +10,7 @@ libraryDependencies ++= Seq(
   "org.postgresql"  % "postgresql" % "42.7.3",
   "at.favre.lib"    % "bcrypt"     % "0.10.2",
   "com.auth0"       % "java-jwt"   % "4.4.0",
+  "com.stripe"      % "stripe-java" % "24.3.0",
 )
 
 Compile / mainClass := Some("ironlog.Main")
