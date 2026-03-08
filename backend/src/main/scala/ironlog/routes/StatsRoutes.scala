@@ -183,4 +183,112 @@ object StatsRoutes extends cask.Routes:
     catch case e: Exception => err(e.getMessage, 500)
   }
 
+  @cask.post("/api/stats/analyse")
+  def analyse(request: cask.Request) = handleAuth(request) { userId =>
+    try
+      if Config.anthropicKey.isEmpty then
+        err("ANTHROPIC_API_KEY is not configured", 500)
+      else
+        val cutoff = LocalDate.now().minusWeeks(8)
+
+        val workouts = Database.run(_.run(
+          Workout.select.filter(w => w.userId === userId && w.endedAt.isDefined)
+        )).filter(w => !w.startedAt.toLocalDate.isBefore(cutoff))
+          .sortBy(_.startedAt.toString)
+
+        val workoutIds  = workouts.map(_.id).toSet
+        val allSets     = Database.run(_.run(WorkoutSet.select.filter(s => s.weightKg.isDefined && s.reps.isDefined)))
+          .filter(s => workoutIds.contains(s.workoutId))
+        val exercises   = Database.run(_.run(Exercise.select))
+        val exById      = exercises.map(e => e.id -> e).toMap
+        val setsByWorkout = allSets.groupBy(_.workoutId)
+
+        // Build a compact summary for the prompt
+        val workoutLines = workouts.map { w =>
+          val durationMin = w.endedAt.map(e => java.time.Duration.between(w.startedAt, e).toMinutes).getOrElse(0L)
+          val sets = setsByWorkout.getOrElse(w.id, Seq.empty)
+          val volume = sets.flatMap(s => for wt <- s.weightKg; r <- s.reps yield wt * r).sum
+          val muscles = sets.flatMap(s => exById.get(s.exerciseId).map(_.muscleGroup)).distinct.mkString(", ")
+          val setLines = sets.groupBy(_.exerciseId).map { (exId, ss) =>
+            val name = exById.get(exId).map(_.name).getOrElse("Unknown")
+            val summary = ss.map(s => s"${s.weightKg.getOrElse(0)}kg×${s.reps.getOrElse(0)}").mkString(", ")
+            s"    $name: $summary"
+          }.mkString("\n")
+          s"- ${w.startedAt.toLocalDate} | ${w.title} | ${durationMin}min | ${volume.toInt}kg total | muscles: $muscles\n$setLines"
+        }.mkString("\n\n")
+
+        // Muscle group volume breakdown
+        val muscleVolumes = allSets.groupBy(s => exById.get(s.exerciseId).map(_.muscleGroup).getOrElse("Other"))
+          .map { (g, ss) => g -> ss.flatMap(s => for wt <- s.weightKg; r <- s.reps yield wt * r).sum.toInt }
+          .toSeq.sortBy(-_._2)
+          .map { (g, vol) => s"  $g: ${vol}kg" }.mkString("\n")
+
+        val totalWorkouts = workouts.length
+        val avgPerWeek    = totalWorkouts / 8.0
+
+        val prompt = s"""You are a professional strength and conditioning coach. Analyse the following 8-week workout log and write a personalised ~1-page report for this athlete.
+
+The report should cover:
+1. A brief summary of their training habits (frequency, consistency, volume)
+2. Muscle group balance — what they are overdoing or neglecting
+3. Strength trends — are they progressing, plateauing, or regressing on key lifts?
+4. Specific actionable suggestions (e.g. add more X, reduce Y, try Z technique)
+5. A recommended weekly workout structure going forward
+
+Keep the tone encouraging but honest. Use clear sections with short headers. Be specific — reference actual exercises and numbers from the data.
+
+--- WORKOUT DATA (last 8 weeks) ---
+Total sessions: $totalWorkouts (~${f"$avgPerWeek%.1f"}/week)
+
+Volume by muscle group:
+$muscleVolumes
+
+Sessions:
+$workoutLines
+---
+
+Write the report now:"""
+
+        val response = requests.post(
+          "https://api.anthropic.com/v1/messages",
+          readTimeout = 60000,
+          connectTimeout = 10000,
+          headers = Map(
+            "x-api-key"         -> Config.anthropicKey,
+            "anthropic-version" -> "2023-06-01",
+            "content-type"      -> "application/json",
+          ),
+          data = ujson.Obj(
+            "model"      -> "claude-haiku-4-5-20251001",
+            "max_tokens" -> 1024,
+            "messages"   -> ujson.Arr(ujson.Obj(
+              "role"    -> "user",
+              "content" -> prompt,
+            )),
+          ).toString,
+        )
+        val body    = ujson.read(response.text())
+        val content = body("content")(0)("text").str
+
+        // Generate a title from the date range
+        val dateLabel = s"Report – ${LocalDate.now()}"
+        val reportId  = java.util.UUID.randomUUID().toString
+        val now       = java.time.LocalDateTime.now()
+        Database.run(_.run(Report.insert.columns(
+          _.id        := reportId,
+          _.userId    := userId,
+          _.title     := dateLabel,
+          _.content   := content,
+          _.createdAt := now,
+        )))
+
+        ok(ujson.Obj(
+          "id"        -> reportId,
+          "title"     -> dateLabel,
+          "content"   -> content,
+          "createdAt" -> now.toString,
+        ))
+    catch case e: Exception => err(e.getMessage, 500)
+  }
+
   initialize()

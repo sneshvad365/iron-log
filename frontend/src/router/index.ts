@@ -22,6 +22,8 @@ const routes = [
       { path: 'history',   component: () => import('pages/HistoryPage.vue') },
       { path: 'exercises', component: () => import('pages/ExercisesPage.vue') },
       { path: 'stats',     component: () => import('pages/StatsPage.vue') },
+      { path: 'reports',   component: () => import('pages/ReportsPage.vue') },
+      { path: 'reports/:id', component: () => import('pages/ReportDetailPage.vue') },
     ],
   },
   { path: '/:pathMatch(.*)*', redirect: '/login' },

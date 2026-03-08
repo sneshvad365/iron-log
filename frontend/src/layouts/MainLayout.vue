@@ -75,6 +75,7 @@ const navLinks = [
   { to: '/app/history',   icon: 'history',    label: 'History'    },
   { to: '/app/exercises', icon: 'list',       label: 'Exercises'  },
   { to: '/app/stats',     icon: 'bar_chart',  label: 'Stats'      },
+  { to: '/app/reports',  icon: 'auto_awesome', label: 'Reports'  },
 ]
 
 function logout() {

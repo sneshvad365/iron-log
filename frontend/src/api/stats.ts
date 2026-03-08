@@ -17,3 +17,6 @@ export const getFrequency = (days = 365) =>
 
 export const getMuscleBreakdown = (period: 'weekly' | 'monthly' = 'weekly', count = 12, from?: string, to?: string) =>
   client.get('/api/stats/muscle-breakdown', { params: { period, count, ...(from && to ? { from, to } : {}) } })
+
+export const analyseWorkouts = () =>
+  client.post('/api/stats/analyse', {})

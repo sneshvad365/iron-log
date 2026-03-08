@@ -1,6 +1,16 @@
 <template>
   <q-page class="q-pa-md">
-    <div class="text-h5 text-weight-bold q-mb-md">Stats</div>
+    <div class="row items-center q-mb-md">
+      <div class="text-h5 text-weight-bold col">Stats</div>
+      <q-btn
+        label="AI Report"
+        icon="auto_awesome"
+        color="primary"
+        unelevated
+        :loading="analysing"
+        @click="generateReport"
+      />
+    </div>
 
     <!-- Lifetime stats -->
     <div class="row q-col-gutter-md q-mb-lg">
@@ -72,27 +82,32 @@
         </q-markup-table>
       </q-card-section>
     </q-card>
+
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useStatsStore } from 'stores/stats'
+import { useReportsStore } from 'stores/reports'
+import * as statsApi from 'api/stats'
 import VolumeChart from 'components/VolumeChart.vue'
 import MuscleBreakdownChart from 'components/MuscleBreakdownChart.vue'
 
+const router        = useRouter()
 const statsStore    = useStatsStore()
+const reportsStore  = useReportsStore()
 const period        = ref<'weekly' | 'monthly'>('weekly')
 const selectedLabel = ref<string | undefined>(undefined)
+const analysing     = ref(false)
 
-// Given a bar label, compute the [from, to] date range
 function dateRangeFor(label: string): { from: string; to: string } {
   if (period.value === 'monthly') {
     const start = new Date(label)
-    const end   = new Date(start.getFullYear(), start.getMonth() + 1, 0) // last day of month
+    const end   = new Date(start.getFullYear(), start.getMonth() + 1, 0)
     return { from: label, to: end.toISOString().slice(0, 10) }
   } else {
-    // label is Monday of the week (YYYY-MM-DD)
     const start = new Date(label)
     const end   = new Date(start)
     end.setDate(end.getDate() + 6)
@@ -123,6 +138,18 @@ function onPeriodChange() {
   statsStore.fetchMuscleBreakdown(period.value)
 }
 
+async function generateReport() {
+  analysing.value = true
+  try {
+    const res = await statsApi.analyseWorkouts()
+    const report = res.data.data
+    reportsStore.addReport({ id: report.id, title: report.title, createdAt: report.createdAt })
+    void router.push(`/app/reports/${report.id}`)
+  } finally {
+    analysing.value = false
+  }
+}
+
 const lifetimeStats = computed(() => [
   { label: 'Total Workouts', value: statsStore.summary?.totalWorkouts  ?? '–' },
   { label: 'Volume (kg)',    value: statsStore.summary ? Math.round(statsStore.summary.weeklyVolume) : '–' },
@@ -139,3 +166,4 @@ onMounted(async () => {
   ])
 })
 </script>
+

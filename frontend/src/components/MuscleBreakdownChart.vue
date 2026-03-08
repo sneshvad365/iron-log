@@ -16,7 +16,7 @@ const props = defineProps<{ data: { muscleGroup: string; volumeKg: number; perce
 
 const option = computed(() => ({
   tooltip: { trigger: 'item', formatter: '{b}: {d}%' },
-  legend: { orient: 'vertical', left: 'left' },
+  legend: { orient: 'vertical', left: 'left', textStyle: { color: '#ccc' } },
   series: [{
     type: 'pie',
     radius: ['40%', '70%'],
