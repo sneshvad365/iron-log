@@ -1,16 +1,6 @@
 <template>
   <q-page class="q-pa-md">
-    <div class="row items-center q-mb-md">
-      <div class="text-h5 text-weight-bold col">Stats</div>
-      <q-btn
-        label="AI Report"
-        icon="auto_awesome"
-        color="primary"
-        unelevated
-        :loading="analysing"
-        @click="generateReport"
-      />
-    </div>
+    <div class="text-h5 text-weight-bold q-mb-md">Stats</div>
 
     <!-- Lifetime stats -->
     <div class="row q-col-gutter-md q-mb-lg">
@@ -88,19 +78,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useStatsStore } from 'stores/stats'
-import { useReportsStore } from 'stores/reports'
-import * as statsApi from 'api/stats'
 import VolumeChart from 'components/VolumeChart.vue'
 import MuscleBreakdownChart from 'components/MuscleBreakdownChart.vue'
 
-const router        = useRouter()
 const statsStore    = useStatsStore()
-const reportsStore  = useReportsStore()
 const period        = ref<'weekly' | 'monthly'>('weekly')
 const selectedLabel = ref<string | undefined>(undefined)
-const analysing     = ref(false)
 
 function dateRangeFor(label: string): { from: string; to: string } {
   if (period.value === 'monthly') {
@@ -136,18 +120,6 @@ function onPeriodChange() {
   selectedLabel.value = undefined
   statsStore.fetchVolume(period.value)
   statsStore.fetchMuscleBreakdown(period.value)
-}
-
-async function generateReport() {
-  analysing.value = true
-  try {
-    const res = await statsApi.analyseWorkouts()
-    const report = res.data.data
-    reportsStore.addReport({ id: report.id, title: report.title, createdAt: report.createdAt })
-    void router.push(`/app/reports/${report.id}`)
-  } finally {
-    analysing.value = false
-  }
 }
 
 const lifetimeStats = computed(() => [

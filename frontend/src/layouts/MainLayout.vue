@@ -9,6 +9,16 @@
           </span>
         </q-toolbar-title>
 
+        <!-- AI Report button -->
+        <q-btn
+          flat dense
+          icon="auto_awesome"
+          label="AI Report"
+          :loading="analysing"
+          style="color: #ff6200; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.04em; margin-right: 8px;"
+          @click="generateReport"
+        />
+
         <!-- User chip -->
         <div v-if="auth.user" style="display: flex; align-items: center; gap: 8px; margin-right: 8px;">
           <div style="
@@ -59,10 +69,14 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'stores/auth'
+import { useReportsStore } from 'stores/reports'
+import * as statsApi from 'api/stats'
 
 const drawerOpen = ref(false)
+const analysing  = ref(false)
 const router     = useRouter()
 const auth       = useAuthStore()
+const reportsStore = useReportsStore()
 
 const initials = computed(() => {
   if (!auth.user?.name) return '?'
@@ -70,14 +84,26 @@ const initials = computed(() => {
 })
 
 const navLinks = [
-  { to: '/app/dashboard', icon: 'dashboard',  label: 'Dashboard'  },
+  { to: '/app/dashboard', icon: 'dashboard',     label: 'Dashboard'   },
   { to: '/app/log',       icon: 'fitness_center', label: 'Log Workout' },
-  { to: '/app/history',   icon: 'history',    label: 'History'    },
-  { to: '/app/exercises', icon: 'list',       label: 'Exercises'  },
-  { to: '/app/stats',    icon: 'bar_chart',    label: 'Stats'    },
-  { to: '/app/reports',  icon: 'auto_awesome', label: 'Reports'  },
-  { to: '/app/donate',   icon: 'favorite',     label: 'Donate'   },
+  { to: '/app/history',   icon: 'history',        label: 'History'     },
+  { to: '/app/exercises', icon: 'list',           label: 'Exercises'   },
+  { to: '/app/stats',     icon: 'bar_chart',      label: 'Stats'       },
+  { to: '/app/reports',   icon: 'auto_awesome',   label: 'Reports'     },
+  { to: '/app/donate',    icon: 'favorite',       label: 'Donate'      },
 ]
+
+async function generateReport() {
+  analysing.value = true
+  try {
+    const res = await statsApi.analyseWorkouts()
+    const report = res.data.data
+    reportsStore.addReport({ id: report.id, title: report.title, createdAt: report.createdAt })
+    void router.push(`/app/reports/${report.id}`)
+  } finally {
+    analysing.value = false
+  }
+}
 
 function logout() {
   auth.logout()
